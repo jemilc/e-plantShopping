@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import './ProductList.css'
+import { useSelector, useDispatch } from 'react-redux';
+import './ProductList.css';
 import CartItem from './CartItem';
+import { addItem } from './CartSlice';
+import AboutUs from './AboutUs'; // <--- IMPORTACIÓN DEL COMPONENTE EXTERNO
+
 function ProductList({ onHomeClick }) {
     const [showCart, setShowCart] = useState(false);
-    const [showPlants, setShowPlants] = useState(false); // State to control the visibility of the About Us page
+    const [showAboutUs, setShowAboutUs] = useState(false); // Estado para controlar la visibilidad de la página "About Us"
+
+    const cartItems = useSelector(state => state.cart.items);
+    const dispatch = useDispatch();
+
+    const totalCartQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
 
     const plantsArray = [
+        // ... (Tu array plantsArray aquí, no necesita cambios)
         {
             category: "Air Purifying Plants",
             plants: [
@@ -212,6 +222,7 @@ function ProductList({ onHomeClick }) {
             ]
         }
     ];
+
     const styleObj = {
         backgroundColor: '#4CAF50',
         color: '#fff!important',
@@ -232,26 +243,64 @@ function ProductList({ onHomeClick }) {
         fontSize: '30px',
         textDecoration: 'none',
     }
+    const cartCountStyle = {
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        backgroundColor: 'red',
+        color: 'white',
+        borderRadius: '50%',
+        padding: '2px 8px',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        zIndex: 1000,
+        minWidth: '25px',
+        textAlign: 'center',
+        boxSizing: 'border-box'
+    };
 
     const handleHomeClick = (e) => {
         e.preventDefault();
+        setShowCart(false);
+        setShowAboutUs(false);
         onHomeClick();
     };
 
     const handleCartClick = (e) => {
         e.preventDefault();
-        setShowCart(true); // Set showCart to true when cart icon is clicked
+        setShowCart(true);
+        setShowAboutUs(false); // Asegura que AboutUs no se muestre
     };
+
     const handlePlantsClick = (e) => {
         e.preventDefault();
-        setShowPlants(true); // Set showAboutUs to true when "About Us" link is clicked
-        setShowCart(false); // Hide the cart when navigating to About Us
+        setShowCart(false);
+        setShowAboutUs(false); // Asegura que AboutUs no se muestre
+        // Si 'onHomeClick' ya devuelve a la vista de productos, puedes llamarlo aquí
+        // o simplemente dejar los estados en false para que el renderizado condicional muestre los productos
+    };
+
+    const handleAboutUsClick = (e) => {
+        e.preventDefault();
+        setShowAboutUs(true); // Muestra la página "About Us"
+        setShowCart(false);   // Oculta el carrito si estaba visible
     };
 
     const handleContinueShopping = (e) => {
-        e.preventDefault();
-        setShowCart(false);
+       
+        setShowCart(false);     // Oculta el carrito
+        setShowAboutUs(false);  // Oculta About Us (si se llama desde AboutUs)
+        // Esto volverá a la vista de productos por defecto
     };
+
+    const handleAddToCart = (product) => {
+        dispatch(addItem(product));
+    };
+
+    const isAddedToCart = (productName) => {
+        return cartItems.some(item => item.name === productName);
+    };
+
     return (
         <div>
             <div className="navbar" style={styleObj}>
@@ -265,20 +314,67 @@ function ProductList({ onHomeClick }) {
                             </div>
                         </a>
                     </div>
-
                 </div>
                 <div style={styleObjUl}>
                     <div> <a href="#" onClick={(e) => handlePlantsClick(e)} style={styleA}>Plants</a></div>
-                    <div> <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}><h1 className='cart'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="68" width="68"><rect width="156" height="156" fill="none"></rect><circle cx="80" cy="216" r="12"></circle><circle cx="184" cy="216" r="12"></circle><path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path></svg></h1></a></div>
+                    <div> <a href="#" onClick={(e) => handleAboutUsClick(e)} style={styleA}>About Us</a></div> {/* Enlace "About Us" */}
+                    <div>
+                        <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}>
+                            <h1 className='cart' style={{ position: 'relative' }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="68" width="68">
+                                    <rect width="156" height="156" fill="none"></rect>
+                                    <circle cx="80" cy="216" r="12"></circle>
+                                    <circle cx="184" cy="216" r="12"></circle>
+                                    <path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path>
+                                </svg>
+                                {totalCartQuantity > 0 && (
+                                    <span style={cartCountStyle}>{totalCartQuantity}</span>
+                                )}
+                            </h1>
+                        </a>
+                    </div>
                 </div>
             </div>
-            {!showCart ? (
+
+            {/* Lógica de renderizado condicional */}
+            {!showCart && !showAboutUs ? ( // Muestra productos si NO se muestra el carrito y NO se muestra About Us
                 <div className="product-grid">
-
-
+                    {plantsArray.map((category, index) => (
+                        <div key={index}>
+                            <h1>
+                                <div>{category.category}</div>
+                            </h1>
+                            <div className="product-list">
+                                {category.plants.map((plant, plantIndex) => {
+                                    const added = isAddedToCart(plant.name);
+                                    return (
+                                        <div className="product-card" key={plantIndex}>
+                                            <img
+                                                className="product-image"
+                                                src={plant.image}
+                                                alt={plant.name}
+                                            />
+                                            <div className="product-title">{plant.name}</div>
+                                            <div className="product-description">{plant.description}</div>
+                                            <div className="product-cost">${plant.cost}</div>
+                                            <button
+                                                className={`product-button ${added ? 'added-to-cart' : ''}`}
+                                                onClick={() => handleAddToCart(plant)}
+                                                disabled={added}
+                                            >
+                                                {added ? "Added to Cart" : "Add to Cart"}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
                 </div>
-            ) : (
+            ) : showCart ? ( // Si showCart es true, muestra el carrito
                 <CartItem onContinueShopping={handleContinueShopping} />
+            ) : ( // Si showAboutUs es true (y showCart es false), muestra About Us
+                <AboutUs onContinueShopping={handleContinueShopping} />
             )}
         </div>
     );
